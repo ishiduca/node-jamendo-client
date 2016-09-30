@@ -1,0 +1,22 @@
+{
+  "name": "jamendo-client",
+  "version": "0.0.1",
+  "description": "a simple Jamendo API v3 wrapper",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape t/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ishiduca/node-jamendo-client.git"
+  },
+  "keywords": [
+    "jamendo"
+  ],
+  "author": "ishiduc@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ishiduca/node-jamendo-client/issues"
+  },
+  "homepage": "https://github.com/ishiduca/node-jamendo-client#readme"
+}
