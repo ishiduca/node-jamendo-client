@@ -1,0 +1,7 @@
+node_modules/
+client_id.json
+client_secret.json
+test_client_id.json
+*.mp3
+*.ogg
+npm-debug.log
