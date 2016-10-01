@@ -6,3 +6,4 @@ test_client_id.json
 *.ogg
 npm-debug.log
 *.swp
+*.DS_Store

@@ -8,7 +8,6 @@ var HOSTNAME = 'api.jamendo.com'
 var VERSION  = 'v3.0'
 
 module.exports = exports = Jamendo
-
 if (process.env.DEV === 'test') Jamendo._createRequestURI = createRequestURI
 
 function Jamendo (client_id, _client_secret, _opt) {
@@ -57,9 +56,12 @@ Jamendo.prototype.request = function (endpoint, _params, _opt, cb) {
 }
 
 function file (uri, opt, cb) {
-    var ws = new stream.Transform
-    ws._transform = function (chnk, _, done) {
-        done(null, chnk)
+    var ws
+    if (! cb) {
+        ws = new stream.Transform
+        ws._transform = function (chnk, _, done) {
+            done(null, chnk)
+        }
     }
 
     handle(uri, opt)
@@ -72,7 +74,6 @@ function file (uri, opt, cb) {
 
     function handle (uri, opt) {
         var hyp = hyperquest(uri, opt)
-
         hyp.on('response', function (response) {
             if (isRedirect(hyp.request, response)) {
                 return handle(url.resolve(uri, response.headers.location), opt)
@@ -88,15 +89,12 @@ function file (uri, opt, cb) {
                 }))
             }
 
-            response.pipe(ws)
+            response.pipe(cb ? bl(onResEnd) : ws)
 
-            if (cb) {
-                response.pipe(bl(function (err, data) {
-                    cb(err, data, response)
-                }))
+            function onResEnd (err, data) {
+                cb(err, data, response)
             }
         })
-
         return hyp
     }
 }
@@ -109,8 +107,11 @@ function get (uri, opt, cb, _followRedirects) {
 
     opt.headers = xtend(opt.headers, {'accept': 'application/json'})
 
-    var rs = new stream.Readable({objectMode: true})
-    rs._read = function () {}
+    var rs
+    if (! cb) {
+        rs = new stream.Readable({objectMode: true})
+        rs._read = function () {}
+    }
 
     handle(uri, opt)
 
@@ -139,11 +140,10 @@ function get (uri, opt, cb, _followRedirects) {
                 return (redirect = null)
             }
 
-            rs.emit('response', hyp.response)
+            rs && rs.emit('response', hyp.response)
 
             if (err) return onError(err)
-
-            if (! data.length) return cb(null, null, hyp.response)
+            if (! data.length) return cb && cb(null, null, hyp.response)
 
             var ret
             try {
@@ -155,7 +155,7 @@ function get (uri, opt, cb, _followRedirects) {
                 return onError(e)
             }
 
-            rs.emit('Jamendo.Api.Response', ret)
+            rs && rs.emit('Jamendo.Api.Response', ret)
 
             if (ret.headers && ret.headers.code !== 0) {
                 var e = new Error(ret.headers.error_message)
@@ -164,11 +164,14 @@ function get (uri, opt, cb, _followRedirects) {
                 return onError(e)
             }
 
-            ;[].concat(ret.results).forEach(function (result) {
-                rs.push(result)
-            })
-            rs.push(null)
-            cb && cb(null, ret, hyp.response)
+            cb ? cb(null, ret, hyp.response) : push()
+
+            function push () {
+                ;[].concat(ret.results).forEach(function (result) {
+                    rs.push(result)
+                })
+                rs.push(null)
+            }
         }))
 
         return hyp
