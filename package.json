@@ -2,9 +2,10 @@
   "name": "jamendo-client",
   "version": "0.0.1",
   "description": "a simple Jamendo API v3 wrapper",
-  "main": "index.js",
+  "main": "jamendo.js",
   "scripts": {
-    "test": "tape t/*.js"
+    "pretest": "rm -r ./t/server/copy && mkdir ./t/server/copy",
+    "test": "DEV=test tape t/*.js"
   },
   "repository": {
     "type": "git",
@@ -18,5 +19,18 @@
   "bugs": {
     "url": "https://github.com/ishiduca/node-jamendo-client/issues"
   },
-  "homepage": "https://github.com/ishiduca/node-jamendo-client#readme"
+  "homepage": "https://github.com/ishiduca/node-jamendo-client#readme",
+  "devDependencies": {
+    "ecstatic": "^2.1.0",
+    "mkdirp": "^0.5.1",
+    "router-line": "^0.2.1",
+    "tape": "^4.6.0",
+    "through2": "^2.0.1"
+  },
+  "dependencies": {
+    "bl": "^1.1.2",
+    "hyperquest": "^2.1.0",
+    "readable-stream": "^2.1.5",
+    "xtend": "^4.0.1"
+  }
 }
