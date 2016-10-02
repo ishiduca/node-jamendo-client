@@ -2,7 +2,6 @@
 const url       = require('url')
 const http      = require('http')
 const https     = require('https')
-const ecstatic  = require('ecstatic')(__dirname + '/download')
 const Router    = require('router-line').Router
 const client_id = require('../../test_client_id').client_id
 
@@ -39,10 +38,6 @@ module.exports = function (port, _protocol, test) {
             })
             res.end()
         })
-    })
-
-    router.GET('/dummy.txt', (req, res) => {
-        ecstatic(req, res)
     })
 
     const app = protocol.createServer((req, res) => {

@@ -32,6 +32,7 @@ function Jamendo (client_id, _client_secret, _opt) {
     this.hostname  = HOSTNAME
     this.version   = VERSION
     this.followRedirects = opt.followRedirects
+    this.redirectToFile  = !! opt.redirectToFile
 }
 
 Jamendo.prototype.request = function (endpoint, _params, _opt, cb) {
@@ -50,12 +51,12 @@ Jamendo.prototype.request = function (endpoint, _params, _opt, cb) {
     var uri    = createRequestURI(endpoint, params, this.protocol, this.hostname, this.version)
 
     if (/\/file\/?$/.test(endpoint))
-        return file(uri, opt, cb)
+        return file(uri, opt, cb, this.redirectToFile)
     else
         return get(uri, opt, cb, this.followRedirects)
 }
 
-function file (uri, opt, cb) {
+function file (uri, opt, cb, redirectToFile) {
     var ws
     if (! cb) {
         ws = new stream.Transform
@@ -64,20 +65,24 @@ function file (uri, opt, cb) {
         }
     }
 
-    handle(uri, opt)
+    redirectToFile ? handle(uri, opt) : handleNotRedirectFile(uri, opt)
 
     return ws
 
-    function onError (err) {
-        cb ? cb(err) : ws.emit('error', err)
+    function onError (err, response) {
+        cb ? cb(err, null, response) : ws.emit('error', err)
     }
 
     function handle (uri, opt) {
         var hyp = hyperquest(uri, opt)
+
         hyp.on('response', function (response) {
             if (isRedirect(hyp.request, response)) {
-                return handle(url.resolve(uri, response.headers.location), opt)
+                var headers = xtend(opt.headers, {referer: uri})
+                return handle(url.resolve(uri, response.headers.location), xtend(opt, {headers: headers}))
             }
+
+            ws && ws.emit('response', response)
 
             if (response.statusCode >= 400 && response.statusCode < 600) {
                 return response.pipe(bl(function (err, data) {
@@ -85,7 +90,7 @@ function file (uri, opt, cb) {
                         err = new Error(String(data))
                         err.statusCode = response.statusCode
                     }
-                    onError(err)
+                    onError(err, response)
                 }))
             }
 
@@ -94,6 +99,28 @@ function file (uri, opt, cb) {
             function onResEnd (err, data) {
                 cb(err, data, response)
             }
+        })
+        return hyp
+    }
+
+    function handleNotRedirectFile (uri, opt) {
+        var hyp = hyperquest(uri, opt)
+
+        hyp.on('response', function (response) {
+            ws && ws.emit('response', response)
+
+            if (isRedirect(hyp.request, response)) {
+                if (cb) return cb(null, response.headers.location, response)
+                else return ws.end(response.headers.location)
+            }
+
+//            if (response.statusCode >= 400 && response.statusCode < 600) {
+                return response.pipe(bl(function (err, data) {
+                    if (! err)  err = new Error(String(data))
+                    err.statusCode = response.statusCode
+                    onError(err, response)
+                }))
+//            }
         })
         return hyp
     }
@@ -117,8 +144,8 @@ function get (uri, opt, cb, _followRedirects) {
 
     return rs
 
-    function onError (err) {
-        cb ? cb(err) : rs.emit('error', err)
+    function onError (err, response) {
+        cb ? cb(err, null, response) : rs.emit('error', err)
     }
 
     function handle (uri, opt) {
@@ -133,7 +160,7 @@ function get (uri, opt, cb, _followRedirects) {
         hyp.pipe(bl(function (err, data) {
             if (redirect) {
                 if ((count += 1) >= maxRedirects)
-                    return onError(new Error('Response was redirected too many times :('))
+                    return onError(new Error('Response was redirected too many times :('), hyp.response)
 
                 var headers = xtend(opt.headers, {referer: uri})
                 handle(url.resolve(uri, redirect), xtend(opt, {headers: headers}))
@@ -142,7 +169,7 @@ function get (uri, opt, cb, _followRedirects) {
 
             rs && rs.emit('response', hyp.response)
 
-            if (err) return onError(err)
+            if (err) return onError(err, hyp.response)
             if (! data.length) return cb && cb(null, null, hyp.response)
 
             var ret
@@ -152,7 +179,7 @@ function get (uri, opt, cb, _followRedirects) {
                 var e = new SyntaxError('JSON parse error: ' + _err.message, _err)
                 e.data = data
                 e.response = hyp.response
-                return onError(e)
+                return onError(e, hyp.response)
             }
 
             rs && rs.emit('Jamendo.Api.Response', ret)
@@ -161,7 +188,7 @@ function get (uri, opt, cb, _followRedirects) {
                 var e = new Error(ret.headers.error_message)
                 e.name = ret.headers.status
                 e.data = ret.headers
-                return onError(e)
+                return onError(e, hyp.response)
             }
 
             cb ? cb(null, ret, hyp.response) : push()

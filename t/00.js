@@ -34,6 +34,12 @@ test('new Jamendo(client_id, {followRedirects: 3})', t => {
     t.end()
 })
 
+test('new Jamendo(client_id, {redirectToFile: true})', t => {
+    var jam = new Jamendo('foo', {redirectToFile: true})
+    t.ok(jam.redirectToFile, 'jamendo.redirectToFile eq true')
+    t.end()
+})
+
 test('new Jamendo(client_id, {followRedirects: true, https: true})', t => {
     var jam
     t.doesNotThrow(() => (jam = new Jamendo('foo', {followRedirects: true, https: true})), null, 'does not throw error: new Jamendo(client_id, opt)')
@@ -52,5 +58,4 @@ test('new Jamendo(client_id, client_secret, {followRedirects: 2, https: true})',
     t.is(jam.followRedirects, 2, 'jamendo.followRedirects eq 2')
     t.is(jam.protocol, 'https:', 'jamendo.protocol eq "https:"')
     t.end()
-
 })

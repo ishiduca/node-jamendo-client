@@ -49,7 +49,7 @@ test('followRedirects => 2', t => {
             t.ok(err instanceof Error, 'err instaceof Error')
             t.is(err.message, 'Response was redirected too many times :(', err.message)
             t.notOk(ret, 'no exists ret')
-            t.notOk(response, 'no exists response')
+            t.ok(response instanceof http.IncomingMessage, 'response instanceof http.IncomingMessage')
             app.close()
             t.end()
         })
