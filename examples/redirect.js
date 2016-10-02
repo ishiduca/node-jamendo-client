@@ -6,11 +6,13 @@ const jamendo = require('../jamendo')(client_id, {
   , followRedirects: true
 })
 
+const id = 618823
+
 const app = http.createServer((req, res) => {
     console.log(req.method)
     console.dir(req.headers)
 
-    jamendo.request('/tracks/file', {id: 1316252, action: 'stream'}, (err, redirectURL, response) => {
+    jamendo.request('/tracks/file', {id: id, action: 'stream'}, (err, redirectURL, response) => {
         if (err) return onError(err)
         if (redirectURL) return redirect(redirectURL, response)
         onError(new Error('no redirect url'))
@@ -21,12 +23,14 @@ const app = http.createServer((req, res) => {
     function redirect (redirectURL, response) {
         res.statusCode = response.statusCode
         res.setHeader('location', redirectURL)
+        res.setHeader('connection', 'close')
         res.end()
     }
 
     function onError (err) {
         res.statusCode = 500
         res.setHeader('content-type', 'text/plain; charset=utf-8')
+        res.setHeader('connection', 'close')
         res.end(String(err))
         console.log(err)
     }
